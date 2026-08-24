@@ -1,0 +1,283 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:100%;display:block}</style>
+<iframe id="f" src="../index.html?mid=56&affid=testing"></iframe>
+<script>
+// Drives the page for screenshots: ?step=allset|sms|ac
+var f = document.getElementById("f");
+var hp = new URLSearchParams(location.search);
+if (hp.get("src")) f.src = hp.get("src"); // full override (encodeURIComponent it)
+else if (hp.get("terms")) f.src = "../index.html?mid=56&affid=testing&terms=" + hp.get("terms");
+f.onload = function () {
+  var d = f.contentDocument, w = f.contentWindow;
+  var step = new URLSearchParams(location.search).get("step");
+  // ?scroll=N|max — scroll the modal overlay (the desktop legal-rail surface)
+  // after the step settles; "max" lands on the stretched legal links.
+  var sc = hp.get("scroll");
+  if (sc) setTimeout(function () {
+    var m = d.getElementById("leadModal");
+    if (m) m.scrollTop = sc === "max" ? m.scrollHeight : parseInt(sc, 10);
+  }, 2600);
+  if (step === "pulse") {
+    // E2E: intercept every AjaxServer call, drive the whole funnel on the
+    // (pre-popped) lander, then assert the pixel handoff on the report page.
+    if (!window.__pulseCalls) window.__pulseCalls = [];
+    var calls = window.__pulseCalls;
+    if (!window.__pulsePhase) {
+      window.__pulsePhase = 1;
+      var of = w.fetch.bind(w);
+      w.fetch = function (u, o) {
+        var fn = (String(u).match(/function=(\w+)/) || [])[1];
+        var fld = (String(u).match(/[?&]fld=([^&]+)/) || [])[1];
+        return of(u, o).then(function (r) {
+          if (fn) calls.push(fn + (fld ? "[" + decodeURIComponent(fld) + "]" : "") + "=" + r.status);
+          return r;
+        });
+      };
+      setTimeout(function () { // let prepop + init settle
+        d.querySelector(".hero .search").dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
+        setTimeout(function () {
+          d.getElementById("leadForm").dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
+          // questions step: intent chip, focus chip, slider to stop 3, continue
+          d.querySelectorAll("#intentChips .lm-chip")[1].click();
+          d.querySelectorAll("#focusChips .lm-chip")[0].click();
+          var sl = d.getElementById("repairsSlider");
+          sl.value = "3";
+          sl.dispatchEvent(new w.Event("input", { bubbles: true }));
+          sl.dispatchEvent(new w.Event("change", { bubbles: true }));
+          setTimeout(function () {
+            d.getElementById("qContinue").click();
+            setTimeout(function () {
+              var sp = d.getElementById("specialText");
+              sp.value = "Solar panels, corner lot";
+              sp.dispatchEvent(new w.Event("input", { bubbles: true }));
+              d.getElementById("viewReport").click();
+              setTimeout(function () { d.getElementById("textReport").click(); }, 400);
+              setTimeout(function () { d.getElementById("toSms").click(); }, 800);
+            }, 700);
+          }, 500);
+        }, 1500);
+      }, 3000);
+    } else {
+      setTimeout(function () {
+        var pixel = "";
+        try { pixel = f.contentWindow.sessionStorage.getItem("pulsePixelHTML") || ""; } catch (e) {}
+        var injected = !!f.contentDocument.querySelector("#pixelDiv img");
+        var dbg = document.createElement("div");
+        dbg.style.cssText = "position:fixed;top:0;left:0;right:0;background:#043;color:#fff;z-index:9999;font:11px monospace;padding:6px;white-space:pre-wrap";
+        var ra = f.contentDocument.getElementById("reportAddr");
+        var nt = f.contentDocument.getElementById("smsNotice");
+        var ph = "";
+        try { ph = JSON.parse(f.contentWindow.sessionStorage.getItem("pulseFields") || "{}").phone || "none"; } catch (e) { ph = "err"; }
+        dbg.textContent = "ADDR=" + (ra ? ra.textContent : "?") + " | NOTICE hidden=" + (nt ? nt.hidden : "?") + " snapPhone=" + ph + " | PIXEL stored=" + (pixel.length > 0) + " injected=" + injected + " | CALLS: " + calls.join(" ");
+        document.body.appendChild(dbg);
+      }, 1500);
+    }
+    return;
+  }
+  if (step === "clearx" || step === "clearx2") {
+    // Regression for the "jumping box": prepop lander with ?zsv=1, click the
+    // picked chip to edit, backspace some chars — the sv photo must actually
+    // hide (not just lose flex-wrap) and the X-clear must appear. clearx2
+    // additionally taps the X and asserts the input is emptied + refocused.
+    setTimeout(function () {
+      var pk = d.querySelector(".search .picked");
+      if (pk && !pk.hidden) pk.click();
+      var inp = d.getElementById("addr");
+      inp.value = inp.value.slice(0, -9); // "backspace" a chunk
+      inp.dispatchEvent(new w.Event("input", { bubbles: true }));
+      setTimeout(function () {
+        if (step === "clearx2") d.getElementById("addrClear").click();
+        setTimeout(function () {
+          var img = d.querySelector(".sv-img");
+          var xb = d.getElementById("addrClear");
+          var sb = d.querySelector(".search");
+          var dbg = document.createElement("div");
+          dbg.style.cssText = "position:fixed;top:0;left:0;background:#060;color:#fff;z-index:9999;font:12px monospace;padding:4px 8px";
+          dbg.textContent = "svGone=" + (!img || w.getComputedStyle(img).display === "none") +
+            " xVisible=" + (xb && !xb.hidden) +
+            " boxW=" + Math.round(sb.getBoundingClientRect().width) +
+            " val=[" + inp.value + "]" +
+            " focused=" + (d.activeElement === inp);
+          document.body.appendChild(dbg);
+        }, 300);
+      }, 300);
+    }, 4000);
+    return;
+  }
+  if (step === "acfocus") {
+    // Focus the address input (mobile): the page should scroll the search
+    // box to the top, leaving the space below for suggestions.
+    var ul2 = d.getElementById("addr-suggestions");
+    for (var j = 1; j <= 5; j++) {
+      var li2 = d.createElement("li");
+      li2.innerHTML = '<span class="ac-street">' + j + '23 Main St</span><span class="ac-sec">Springfield, MO 65807</span>';
+      ul2.appendChild(li2);
+    }
+    ul2.hidden = false;
+    var addrEl = d.getElementById("addr");
+    addrEl.focus();
+    // Headless doesn't dispatch focus events to a background iframe even
+    // though focus lands — fire it explicitly to exercise the handler.
+    addrEl.dispatchEvent(new w.Event("focus"));
+    setTimeout(function () {
+      var dbg = document.createElement("div");
+      dbg.style.cssText = "position:fixed;top:0;right:0;background:#c00;color:#fff;z-index:9999;font:13px monospace;padding:4px 8px";
+      dbg.textContent = "scrollY=" + f.contentWindow.pageYOffset +
+        " active=" + (f.contentDocument.activeElement && f.contentDocument.activeElement.id);
+      document.body.appendChild(dbg);
+    }, 800);
+    return;
+  }
+  if (step === "acpick") {
+    // Full real flow: focus (scrolls box to top), type, wait for real
+    // Smarty suggestions, pick one (should scroll the CTA to the bottom).
+    var t0 = w.performance.now(), calls = [];
+    var origScrollTo = w.scrollTo.bind(w);
+    w.scrollTo = function (x, y) { calls.push(Math.round(w.performance.now() - t0) + "ms->" + y); origScrollTo(x, y); };
+    var inp = d.getElementById("addr");
+    inp.focus();
+    inp.dispatchEvent(new w.Event("focus"));
+    inp.value = "1600 Pennsylvania Ave";
+    inp.dispatchEvent(new w.Event("input", { bubbles: true }));
+    var tries = 0;
+    var poll = setInterval(function () {
+      var li = d.querySelector("#addr-suggestions li");
+      if (li) {
+        clearInterval(poll);
+        li.dispatchEvent(new w.MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+        var samples = [];
+        [300, 700, 1200].forEach(function (ms) {
+          setTimeout(function () { samples.push(ms + ":" + f.contentWindow.pageYOffset); }, ms);
+        });
+        setTimeout(function () {
+          // Probe: does a direct scrollTop write stick where scrollTo(0,0) didn't?
+          f.contentDocument.documentElement.scrollTop = 0;
+          samples.push("probeSet");
+        }, 1500);
+        setTimeout(function () {
+          var cs = f.contentWindow.getComputedStyle(f.contentDocument.body);
+          samples.push("1800:" + f.contentWindow.pageYOffset + " bodyOv=" + cs.overflow +
+            " sb=" + f.contentWindow.getComputedStyle(f.contentDocument.documentElement).scrollBehavior);
+        }, 1800);
+        setTimeout(function () {
+          var dbg = document.createElement("div");
+          dbg.style.cssText = "position:fixed;top:0;right:0;background:#c00;color:#fff;z-index:9999;font:12px monospace;padding:4px 8px;max-width:480px";
+          dbg.textContent = "y[" + samples.join(" ") + "] calls[" + calls.join("|") + "]";
+          document.body.appendChild(dbg);
+        }, 2600);
+      } else if (++tries > 40) { clearInterval(poll); }
+    }, 100);
+    return;
+  }
+  if (step === "ac") {
+    // Fake-populate the autocomplete list to check clipping at the hero edge.
+    var ul = d.getElementById("addr-suggestions");
+    for (var i = 1; i <= 8; i++) {
+      var li = d.createElement("li");
+      li.innerHTML = '<span class="ac-street">' + i + '23 Main St</span><span class="ac-sec">Springfield, MO 65807</span>';
+      ul.appendChild(li);
+    }
+    ul.hidden = false;
+    return;
+  }
+  if (step === "dr") {
+    // DR assertions: backdrop click must not close; X hidden past contact;
+    // no back buttons anywhere.
+    d.getElementById("addr").value = d.getElementById("addr").value || "123 Main St, Springfield, MO 65807";
+    d.querySelector(".hero .search").dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
+    d.querySelector(".lm-backdrop").click();
+    var openAfterBackdrop = !d.getElementById("leadModal").hidden;
+    var xOnContact = !d.querySelector(".lm-x").hidden;
+    d.getElementById("leadForm").dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
+    setTimeout(function () {
+      var dbg = document.createElement("div");
+      dbg.style.cssText = "position:fixed;top:0;left:0;background:#060;color:#fff;z-index:9999;font:12px monospace;padding:4px 8px";
+      dbg.textContent = "openAfterBackdropClick=" + openAfterBackdrop +
+        " xVisibleOnContact=" + xOnContact +
+        " xHiddenNow=" + d.querySelector(".lm-x").hidden +
+        " backBtns=" + d.querySelectorAll("[data-back]").length;
+      document.body.appendChild(dbg);
+    }, 400);
+    return;
+  }
+  d.getElementById("addr").value = "123 Main St, Springfield, MO 65807";
+  d.querySelector(".hero .search").dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
+  if (step === "contact") {
+    // ?check=1 taps the inline-consent box (?terms=inline variant) —
+    // exercises tap-anywhere toggling + the checked darkening.
+    if (hp.get("check")) d.querySelector(".lm-disclosure").click();
+    return;
+  }
+  if (step === "err") { d.getElementById("leadForm").dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true })); return; }
+  // ?check=1 also unblocks later steps under the inline-consent variants
+  if (hp.get("check")) d.querySelector(".lm-disclosure").click();
+  d.getElementById("leadForm").dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
+  if (step === "questions") {
+    var sv = new URLSearchParams(location.search).get("slide");
+    if (sv === "drag") {
+      // Synthetic pointer drag across the wedge (tests the iOS-drag fix).
+      // MUST wait out the Z-beat: while the questions screen is hidden the
+      // wedge rect is all zeros and the math collapses to stop 2.
+      setTimeout(function () {
+        var wb = d.querySelector(".lm-wedge");
+        var r = wb.getBoundingClientRect();
+        var y = r.top + r.height / 2;
+        wb.dispatchEvent(new w.PointerEvent("pointerdown", { clientX: r.left + r.width * 0.15, clientY: y, bubbles: true, pointerId: 1 }));
+        wb.dispatchEvent(new w.PointerEvent("pointermove", { clientX: r.left + r.width * 0.55, clientY: y, bubbles: true, pointerId: 1 }));
+        wb.dispatchEvent(new w.PointerEvent("pointermove", { clientX: r.left + r.width * 0.97, clientY: y, bubbles: true, pointerId: 1 }));
+        wb.dispatchEvent(new w.PointerEvent("pointerup", { clientX: r.left + r.width * 0.97, clientY: y, bubbles: true, pointerId: 1 }));
+      }, 2000);
+    } else if (sv) {
+      var sl = d.getElementById("repairsSlider");
+      sl.value = String(parseInt(sv, 10) * 4); // slide= takes a LEVEL (0-5)
+      sl.dispatchEvent(new w.Event("input", { bubbles: true }));
+    }
+    return;
+  }
+  if (step === "qerr") { d.getElementById("qContinue").click(); return; } // continue with no intent picked
+  d.querySelectorAll("#intentChips .lm-chip")[1].click(); // pick "Soon" so validation passes
+  d.getElementById("qContinue").click();
+  if (step === "spdrag") {
+    // Desktop mouse-drag on the SomethingSpecial carousel: drag must scroll,
+    // the click released at drag-end must NOT add a chip, and a plain click
+    // afterwards must still add one.
+    setTimeout(function () { // wait out the Z-beat into the special screen
+      var sc = d.getElementById("specialChips");
+      var r = sc.getBoundingClientRect();
+      var y = r.top + 18;
+      sc.dispatchEvent(new w.MouseEvent("mousedown", { clientX: r.left + 320, clientY: y, bubbles: true }));
+      sc.dispatchEvent(new w.MouseEvent("mousemove", { clientX: r.left + 60, clientY: y, bubbles: true }));
+      sc.dispatchEvent(new w.MouseEvent("mouseup", { clientX: r.left + 60, clientY: y, bubbles: true }));
+      var scrolled = sc.scrollLeft;
+      var chip = sc.querySelector(".sp-chip");
+      chip.dispatchEvent(new w.MouseEvent("click", { bubbles: true, cancelable: true })); // drag-end click: swallowed
+      var afterDragClick = d.getElementById("specialText").value;
+      chip.dispatchEvent(new w.MouseEvent("click", { bubbles: true, cancelable: true })); // plain click: adds
+      setTimeout(function () {
+        var dbg = document.createElement("div");
+        dbg.style.cssText = "position:fixed;top:0;left:0;background:#060;color:#fff;z-index:9999;font:12px monospace;padding:4px 8px";
+        dbg.textContent = "scrolled=" + scrolled +
+          " dragClickAdded=[" + afterDragClick + "]" +
+          " plainClickAdded=[" + d.getElementById("specialText").value + "]";
+        document.body.appendChild(dbg);
+      }, 300);
+    }, 2600);
+    return;
+  }
+  if (step === "textreport" || step === "allset" || step === "dnc") {
+    // seed a phone so the Access-anytime prefill + validation pass, then
+    // ride the zbeats: special -> textreport (-> allset (-> dnc finale))
+    d.getElementById("leadPhone").value = "(417) 880-9688";
+    setTimeout(function () { d.getElementById("viewReport").click(); }, 2200);
+    if (step !== "textreport") setTimeout(function () { d.getElementById("textReport").click(); }, 4400);
+    if (step === "dnc") setTimeout(function () { d.getElementById("noContact").click(); }, 6600);
+    return;
+  }
+  if (step === "sms") d.getElementById("toSms").click();
+  if (step === "finale") {
+    d.getElementById("toSms").click();
+    setTimeout(function () { d.getElementById("viewReport").click(); }, 1800);
+  }
+};
+</script>

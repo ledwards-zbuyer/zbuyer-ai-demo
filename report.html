@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Cash Value Report — zBuyer</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="assets/favicon-z.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* Cash Value Report v2 — real page (was a static dashboard screenshot).
+   * Zoodealio-powered, classic-blue funnel styling. Variants:
+   *   ?values=combined|options|spectrum  — value-display strategy (default combined)
+   * Demo data throughout; compare-report.html is the team jump page. */
+  /* Report palette: the original classic-blue family, matching the funnel
+     (a quiet slate-navy retone was tried 2026-07-27 and reverted 07-28). */
+  :root{
+    --c1:#1D4FD7;--c1d:#1640A8;--navy:#0E1B33;--navy-dd:#0A1426;
+    --acc:#3BA4F4;--cta:#FF6B4A;--cta-d:#F0572F;
+    --ink:#14233D;--muted:#5C6B82;--line:#E4EAF3;--soft:#F4F8FD;--bg:#FFFFFF;
+    --tint:#E7EEFC;--tintink:#1D4FD7;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--ink);
+       background:var(--soft);-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  img{display:block}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+
+  header{background:#fff;border-bottom:1px solid var(--line)}
+  .hbar{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+  .hbar .logo{height:26px;width:auto}
+  .powered{font-size:12px;color:var(--muted)}
+  .powered b{color:var(--c1);font-weight:700}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;
+        box-shadow:0 14px 34px -22px rgba(14,27,51,.18)}
+  main{padding:22px 0 40px}
+  main>.wrap{display:flex;flex-direction:column;gap:16px}
+  /* min-width:0 — without it the 6-card carousel's min-content width
+     propagates up the flex column and widens the whole page on mobile */
+  main>.wrap>*{min-width:0}
+
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--c1);font-weight:800;
+           font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);
+                box-shadow:0 0 0 4px rgba(59,164,244,.22)}
+
+  /* "Access anytime" texted-report notice + phone-update modal */
+  .notice{position:relative;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#FFF4F0;border:2px solid var(--cta);border-radius:14px;padding:13px 44px 13px 16px;font-size:14px;line-height:1.45;box-shadow:0 8px 22px -12px rgba(240,87,47,.45)}
+  .notice[hidden]{display:none}
+  .notice .nico{flex:none;width:30px;height:30px;border-radius:50%;background:var(--cta);color:#fff;display:flex;align-items:center;justify-content:center}
+  .notice b{font-weight:800}
+  .notice .nphone{font-weight:800;color:var(--ink)}
+  .notice .nupd{border:none;background:none;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--c1);text-decoration:underline;cursor:pointer;padding:0;margin-left:auto}
+  .notice .nclose{position:absolute;top:4px;right:8px;border:none;background:none;font-size:22px;line-height:1;color:#c9856d;cursor:pointer;padding:4px}
+  .notice .nclose:hover{color:var(--cta-d)}
+  .pmodal{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+  .pmodal[hidden]{display:none}
+  .pm-backdrop{position:fixed;inset:0;background:rgba(8,14,26,.55);backdrop-filter:blur(3px)}
+  .pm-card{position:relative;width:100%;max-width:360px;background:#fff;border-radius:18px;padding:24px;box-shadow:0 40px 90px -20px rgba(0,0,0,.5)}
+  .pm-card h3{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .pm-card input{width:100%;font-family:inherit;font-size:16px;color:var(--ink);padding:13px 15px;border:1.5px solid var(--line);border-radius:12px;outline:none;margin-top:14px;text-align:center}
+  .pm-card input:focus{border-color:var(--c1)}
+  .pm-card .btn{width:100%;margin-top:12px}
+  .pm-x{position:absolute;top:10px;right:14px;border:none;background:none;font-size:24px;color:#9aa7bd;cursor:pointer}
+
+  /* ---- masthead ---- */
+  .mast{display:flex;align-items:center;gap:18px;justify-content:space-between}
+  .mast h1{font-size:27px;font-weight:800;letter-spacing:-.025em;margin-top:6px}
+  .mast .addr{font-size:15px;font-weight:600;color:var(--ink);margin-top:8px}
+  .mast .facts{font-size:13px;color:var(--muted);margin-top:4px}
+  .mast .facts b{color:var(--ink);font-weight:700}
+  .mast .photo{flex:none;width:300px;height:170px;object-fit:cover;border-radius:14px}
+
+  .xhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .xhead .xcount{font-size:12.5px;color:var(--muted)}
+  .xcard{display:flex;align-items:center;gap:16px}
+  .avatar{flex:none;width:58px;height:58px;border-radius:50%;background:var(--tint);color:var(--c1);
+          display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;letter-spacing:.02em}
+  .xwho{min-width:0;flex:1}
+  .xname{font-size:17.5px;font-weight:800;letter-spacing:-.01em}
+  .xbrok{font-size:13px;color:var(--muted);margin-top:2px}
+  .xline{font-size:13.5px;color:var(--muted);line-height:1.45;margin-top:12px}
+  .xbtns{display:flex;gap:10px;margin-top:14px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;
+       font-weight:800;font-size:15px;padding:13px 18px;border-radius:12px;cursor:pointer;border:none}
+  .btn-cta{background:var(--cta);color:#fff;flex:1}
+  .btn-cta:hover{background:var(--cta-d)}
+  .btn-line{background:#fff;color:var(--c1);border:1.5px solid var(--line);flex:1}
+  .btn-line:hover{border-color:var(--c1)}
+
+  /* maxsold carousel: scroll-snap pages, dots synced by JS */
+  .xtrack{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+          scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+  .xtrack::-webkit-scrollbar{display:none}
+  .xpro{flex:0 0 100%;scroll-snap-align:start;background:var(--soft);border:1px solid var(--line);
+        border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px}
+  .xpro .avatar{width:48px;height:48px;font-size:16px}
+  .xpro .xname{font-size:15.5px}
+  .xpro .xtag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;
+              text-transform:uppercase;color:var(--muted);background:#fff;border:1px solid var(--line);
+              border-radius:999px;padding:3px 9px;margin-top:6px}
+  .xnav{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
+  .xdots{display:flex;gap:7px}
+  .xdot{width:8px;height:8px;border-radius:50%;border:none;background:var(--line);cursor:pointer;padding:0}
+  .xdot.on{background:var(--c1)}
+  .xarrow{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--line);background:#fff;
+          color:var(--muted);font-size:15px;cursor:pointer;display:none;align-items:center;justify-content:center}
+  .xarrow:hover{border-color:var(--c1);color:var(--c1)}
+
+  /* ---- value modules ---- */
+  .vmod[hidden]{display:none}
+  .vhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .vnote{font-size:12.5px;font-style:italic;color:var(--muted);line-height:1.5;margin-top:14px;text-align:center}
+  .vask{display:block;text-align:center;font-size:14.5px;font-weight:700;color:var(--c1);margin-top:12px}
+  .vask:hover{text-decoration:underline}
+
+  /* combined: the slider is the portable widget (assets/value-slider.js) —
+     it injects its own styles; the module init lives near the bottom. */
+  #vSlider{margin-top:10px}
+  .vpoles{display:flex;justify-content:space-between;gap:14px;margin-top:12px}
+  .vpole{max-width:46%}
+  .vpole b{display:block;font-size:13.5px;font-weight:800;color:var(--ink)}
+  .vpole span{display:block;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+  .vpole.right{text-align:right}
+
+  /* options: a range per path */
+  .vcards{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+  .vcard{position:relative;border:1.5px solid var(--line);border-radius:14px;padding:16px 16px 14px;background:#fff}
+  .vcard.feat{border-color:var(--c1);background:var(--tint)}
+  .vchip{position:absolute;top:-9px;left:14px;font-size:10px;font-weight:800;letter-spacing:.07em;
+         text-transform:uppercase;color:#fff;background:var(--c1);border-radius:999px;padding:3px 9px}
+  .vkick{font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--c1)}
+  .vnum{font-size:23px;font-weight:800;letter-spacing:-.02em;margin-top:5px}
+  .vmeta{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .vmeta b{color:var(--ink);font-weight:700}
+  .vdesc{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:7px}
+
+  /* spectrum: every path on one speed<->price line */
+  .spec{margin-top:20px}
+  .srow{position:relative;height:44px}
+  .sbar{position:absolute;top:22px;height:12px;border-radius:999px}
+  .slab{position:absolute;top:0;font-size:12px;color:var(--muted);white-space:nowrap}
+  .slab b{color:var(--ink);font-weight:800}
+  .saxis{position:relative;height:4px;border-radius:999px;margin-top:8px;
+         background:linear-gradient(90deg,var(--acc),var(--c1) 55%,var(--navy))}
+
+  /* ---- lower modules ---- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  h2.sec{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .facts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .fact{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .fact span{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .fact b{display:block;font-size:15.5px;font-weight:800;margin-top:4px}
+  .hint{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.45}
+  .hint a{color:var(--c1);font-weight:700}
+
+  .equity p{font-size:13.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+  .equity .btn{width:100%;margin-top:16px}
+
+  .htoggle{display:flex;gap:8px}
+  .htoggle button{font-family:inherit;font-size:12.5px;font-weight:700;color:var(--muted);background:#fff;
+                  border:1.5px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer}
+  .htoggle button.on{background:var(--tint);border-color:var(--c1);color:var(--c1)}
+  .chart{margin-top:16px}
+  .chart svg{width:100%;height:auto;display:block}
+  .chart .gl{stroke:var(--line);stroke-width:1}
+  .chart .yl,.chart .xl{font-size:11px;fill:var(--muted);font-family:'Inter',sans-serif}
+
+  footer{padding:26px 20px 34px;text-align:center;font-size:13px;color:var(--muted)}
+  footer a{color:var(--muted);text-decoration:underline}
+
+  @media (min-width:761px){
+    .xarrow{display:flex}
+    .xpro{flex-basis:calc((100% - 24px)/3)}
+    .xcard-x .xbtns{margin-top:0;flex:none;width:340px}
+    .xcard-x{display:flex;align-items:center;gap:18px}
+    .xcard-x .xline{margin-top:6px}
+  }
+  @media (max-width:760px){
+    .wrap{padding:0 14px}
+    main{padding:14px 0 28px}
+    main>.wrap{gap:12px}
+    .card{padding:16px;border-radius:16px}
+    .mast{gap:12px}
+    .mast h1{font-size:21.5px;margin-top:5px}
+    .mast .addr{font-size:14px;margin-top:6px}
+    .mast .facts{font-size:12px}
+    .mast .photo{width:86px;height:86px;border-radius:12px}
+    .vnum{font-size:20px}
+    .grid2{grid-template-columns:1fr}
+    .facts-grid{grid-template-columns:repeat(2,1fr)}
+    .slab{font-size:11px}
+  }
+</style>
+</head>
+<body>
+
+<header><div class="wrap hbar">
+  <a href="index.html"><img class="logo" src="assets/logo-blue-dark.png" alt="zBuyer"></a>
+</div></header>
+
+<main><div class="wrap">
+
+  <!-- ============ DEBUG PANEL (2026-07-30) ============
+       Session dump so Lucas can cross-check the database: submissionID,
+       request counter, and every FieldName = value the funnel saved —
+       the TrustedForm token + TCPATerms rows highlighted. HIDDEN unless
+       the page URL carries ?debug=1 (any truthy value works). -->
+  <div id="dbgPanel" hidden style="background:#fff;border:2px dashed #D8442B;border-radius:12px;padding:12px 16px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.7;word-break:break-all;color:#14233D"></div>
+  <script>
+  (function () {
+    if (!new URLSearchParams(location.search).get("debug")) return; // hidden by default
+    var el = document.getElementById("dbgPanel");
+    el.hidden = false;
+    function esc(s) { var d = document.createElement("i"); d.textContent = String(s); return d.innerHTML; }
+    function line(k, v, hot) {
+      return "<div" + (hot ? " style=\"background:#FEF6F4;border-radius:4px;padding:0 4px\"" : "") + "><span style=\"color:#8a97ab\">" + esc(k) + "</span> = " + (hot ? "<b>" : "") + esc(v) + (hot ? "</b>" : "") + "</div>";
+    }
+    try {
+      var sid = sessionStorage.getItem("pulseSID");
+      var cnt = sessionStorage.getItem("pulseCNT");
+      var snap = JSON.parse(sessionStorage.getItem("pulseFields") || "{}");
+      var rows = line("submissionID", sid || "(none — no funnel session in this tab)", true) +
+                 line("request counter (cnt)", cnt || "—");
+      Object.keys(snap).sort().forEach(function (k) {
+        var v = snap[k];
+        if (typeof v !== "string") v = JSON.stringify(v);
+        // TCPATerms shows IN FULL (it's the exact consent text to verify);
+        // everything else truncates to keep the panel scannable
+        if (k !== "trustedform.com_TCPATerms" && v.length > 160) v = v.slice(0, 160) + "… (" + v.length + " chars total)";
+        rows += line(k, v, k === "trustedform.com_CertURL" || k === "trustedform.com_TCPATerms");
+      });
+      el.innerHTML = "<b style=\"color:#D8442B\">DEBUG — funnel session dump (?debug=1)</b>" + rows;
+    } catch (e) { el.textContent = "TEMP DEBUG: " + e; }
+  })();
+  </script>
+
+  <section class="notice" id="smsNotice" role="alert" hidden>
+    <span class="nico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg></span>
+    <span><b>Access anytime:</b> we texted your report link to <span class="nphone" id="noticePhone"></span></span>
+    <button type="button" class="nupd" id="updPhoneBtn">Update my mobile number</button>
+    <button type="button" class="nclose" id="noticeClose" aria-label="Dismiss">&times;</button>
+  </section>
+
+  <!-- masthead: deliver the promised object -->
+  <section class="card mast">
+    <div>
+      <span class="eyebrow"><span class="dot"></span>Report ready</span>
+      <h1>Your Cash Value Report</h1>
+      <p class="addr" id="reportAddr">123 Main St, Springfield, MO 65802</p>
+      <p class="facts"><b>3</b> beds &nbsp;·&nbsp; <b>2</b> baths &nbsp;·&nbsp; <b>1,752</b> sqft &nbsp;·&nbsp; Built <b>1965</b></p>
+    </div>
+    <img class="photo" src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=900&q=70" alt="123 Main St">
+  </section>
+
+  <!-- value module: ?values=combined | options | spectrum.
+       Anchoring rule (all three): no number is labeled "your home's value" —
+       every number is the outcome of a way to sell. -->
+
+  <section class="card vmod" id="vCombined" hidden>
+    <div class="vhead"><span class="eyebrow">Your selling range</span></div>
+    <!-- the portable value-curve slider (assets/value-slider.js), four
+         selling-path anchors. Init script near the bottom. -->
+    <div id="vSlider"></div>
+    <p class="vnote">This range reflects different ways to sell — it isn't an appraisal of your home. Where you land depends on the path you choose.</p>
+  </section>
+
+  <section class="card vmod" id="vOptions" hidden>
+    <div class="vhead"><span class="eyebrow">Your ways to sell</span></div>
+    <div class="vcards">
+      <div class="vcard">
+        <span class="vkick">Cash offer</span>
+        <p class="vnum">$312,000 &ndash; $334,000</p>
+        <p class="vmeta">Est. closing <b>~2 weeks</b></p>
+        <p class="vdesc">A straight cash sale — no showings, no repairs, pick your close date.</p>
+      </div>
+      <div class="vcard feat">
+        <span class="vchip">Most popular</span>
+        <span class="vkick">Cash+</span>
+        <p class="vnum">$341,000 &ndash; $362,000</p>
+        <p class="vmeta">Est. closing <b>~1 month</b></p>
+        <p class="vdesc">Cash certainty with more room on price — a hybrid of speed and value.</p>
+      </div>
+      <div class="vcard">
+        <span class="vkick">List with an agent</span>
+        <p class="vnum">$348,000 &ndash; $371,000</p>
+        <p class="vmeta">Timing <b>set with your agent</b></p>
+        <p class="vdesc">Full market exposure for the strongest price, on the market's schedule.</p>
+      </div>
+    </div>
+    <p class="vnote">Each range reflects that way to sell — none of them is an appraisal of your home.</p>
+  </section>
+
+  <section class="card vmod" id="vSpectrum" hidden>
+    <div class="vhead"><span class="eyebrow">Speed &#8596; price</span></div>
+    <div class="spec">
+      <div class="srow">
+        <span class="slab" style="left:0"><b>Cash offer</b> · $312K&ndash;$334K · ~2 wks</span>
+        <span class="sbar" style="left:0;width:37%;background:var(--acc)"></span>
+      </div>
+      <div class="srow">
+        <span class="slab" style="left:49%"><b>Cash+</b> · $341K&ndash;$362K · ~1 mo</span>
+        <span class="sbar" style="left:49%;width:36%;background:var(--c1)"></span>
+      </div>
+      <div class="srow">
+        <span class="slab" style="right:0;left:auto;text-align:right"><b>List with an agent</b> · $348K&ndash;$371K</span>
+        <span class="sbar" style="left:61%;width:39%;background:var(--navy)"></span>
+      </div>
+      <div class="saxis"></div>
+      <div class="vpoles">
+        <div class="vpole"><b>Fastest sale</b><span>from $312,000</span></div>
+        <div class="vpole right"><b>Estimated market value</b><span>up to $371,000</span></div>
+      </div>
+    </div>
+    <p class="vnote">Every way to sell, on one line — the trade is speed for price, and where you land is your call.</p>
+  </section>
+
+  <!-- supporting modules -->
+  <div class="grid2">
+    <section class="card">
+      <h2 class="sec">Property details</h2>
+      <div class="facts-grid">
+        <div class="fact"><span>Beds</span><b>3</b></div>
+        <div class="fact"><span>Baths</span><b>2</b></div>
+        <div class="fact"><span>Square feet</span><b>1,752</b></div>
+        <div class="fact"><span>Year built</span><b>1965</b></div>
+        <div class="fact"><span>Lot size</span><b>0.28 ac</b></div>
+        <div class="fact"><span>Type</span><b>Single family</b></div>
+      </div>
+    </section>
+
+    <section class="card equity">
+      <h2 class="sec">Estimate your net equity</h2>
+      <p>See what you'd walk away with after your payoff and selling costs.</p>
+      <button class="btn btn-line" type="button">Enter information</button>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="vhead">
+      <h2 class="sec">Home value history</h2>
+      <div class="htoggle">
+        <button id="h5" class="on" type="button">Last 5 years</button>
+        <button id="h10" type="button">Last 10 years</button>
+      </div>
+    </div>
+    <div class="chart">
+      <svg viewBox="0 0 620 232" aria-label="Home value history chart">
+        <line class="gl" x1="40" y1="20"  x2="580" y2="20"/>
+        <line class="gl" x1="40" y1="110" x2="580" y2="110"/>
+        <line class="gl" x1="40" y1="200" x2="580" y2="200"/>
+        <text class="yl" id="y0" x="34" y="204" text-anchor="end">$240K</text>
+        <text class="yl" id="y1" x="34" y="114" text-anchor="end">$300K</text>
+        <text class="yl" id="y2" x="34" y="24"  text-anchor="end">$360K</text>
+        <path id="hArea" fill="rgba(29,79,215,.10)" d=""/>
+        <path id="hLine" fill="none" stroke="var(--c1)" stroke-width="2.5" stroke-linejoin="round" d=""/>
+        <g id="xLabs">
+          <text class="xl" x="40"  y="222">2021</text>
+          <text class="xl" x="148" y="222" text-anchor="middle">2022</text>
+          <text class="xl" x="256" y="222" text-anchor="middle">2023</text>
+          <text class="xl" x="364" y="222" text-anchor="middle">2024</text>
+          <text class="xl" x="472" y="222" text-anchor="middle">2025</text>
+          <text class="xl" x="580" y="222" text-anchor="end">2026</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+</div></main>
+
+<footer>&copy; 2026 zBuyer &nbsp;·&nbsp; <a href="terms.html">Terms of Service</a> &nbsp;·&nbsp; <a href="privacy.html">Privacy Policy</a></footer>
+
+<script>
+(function () {
+  var qp = new URLSearchParams(window.location.search);
+
+  // ---- value-display variant ----
+  var values = qp.get("values");
+  var mods = { combined: "vCombined", options: "vOptions", spectrum: "vSpectrum" };
+  document.getElementById(mods[values] || mods.combined).hidden = false;
+
+  // ---- value history chart: two datasets, same SVG ----
+  var D = {
+    y5: {
+      line: "M40,158 L148,143 L256,123.5 L364,102.5 L472,77 L580,47",
+      y: ["$240K", "$300K", "$360K"],
+      x: ["2021", "2022", "2023", "2024", "2025", "2026"]
+    },
+    y10: {
+      line: "M40,197.5 L94,187 L148,172.3 L202,153.4 L256,136.6 L310,115.6 L364,105.1 L418,91.5 L472,76.8 L526,58.9 L580,37.9",
+      y: ["$180K", "$270K", "$360K"],
+      x: ["2016", "2018", "2020", "2022", "2024", "2026"]
+    }
+  };
+  var hLine = document.getElementById("hLine"), hArea = document.getElementById("hArea");
+  var b5 = document.getElementById("h5"), b10 = document.getElementById("h10");
+  var xLabs = document.getElementById("xLabs").querySelectorAll("text");
+  function draw(key) {
+    var d = D[key];
+    hLine.setAttribute("d", d.line);
+    hArea.setAttribute("d", d.line + " L580,200 L40,200 Z");
+    ["y0", "y1", "y2"].forEach(function (id, i) { document.getElementById(id).textContent = d.y[i]; });
+    xLabs.forEach(function (t, i) { t.textContent = d.x[i]; });
+    b5.classList.toggle("on", key === "y5");
+    b10.classList.toggle("on", key === "y10");
+  }
+  b5.addEventListener("click", function () { draw("y5"); });
+  b10.addEventListener("click", function () { draw("y10"); });
+  draw("y5");
+})();
+</script>
+<!-- Pulse pixel tracking: FinalizeLead (fired on the funnel's last step)
+     returns raw HTML that must land in the thank-you page body. The lander
+     stashes it in sessionStorage across the navigation; inject it here. -->
+<script src="assets/estimate-tray.js"></script>
+<script src="assets/value-slider.js"></script>
+<script>
+/* Estimate tray + value module wiring.
+ * DEFAULT: the four-anchor selling-path slider, and the tray demo (AI 3s,
+ * AVM 7s, Cash offer 10s) with the theme-blue badges. ?snap=N (0-3)
+ * presets the snapped anchor (testing).
+ * ?ranges=1 — ALTERNATE view under evaluation: the slider renders as a
+ * static chart pinned to the full domain, and each estimate is a value
+ * RANGE terraced inside the shaded curve — the line draws in, in its
+ * color, the moment the same-colored tray badge checks. One EST map keeps
+ * tray badge color == slider line color per estimate type. */
+(function () {
+  var el = document.getElementById("vSlider");
+  var combinedOn = el && !document.getElementById("vCombined").hidden;
+  var rangesMode = /[?&]ranges=(1|on|yes|true)\b/.test(location.search) && combinedOn;
+
+  if (!rangesMode) {
+    zbEstimateTray({ demo: { seconds: [1.2, 2, 9] } });
+    if (!combinedOn) return;
+    var slider = zbValueSlider(el, {
+      anchors: [
+        { value: 312000, label: "Quick cash close" },
+        { value: 345000, label: "Cash+" },
+        { value: 355000, label: "Cash+ with repairs" },
+        { value: 371000, label: "Estimated market value" }
+      ],
+      ariaLabel: "Explore your selling range"
+    });
+    var qs = new URLSearchParams(location.search).get("snap");
+    if (qs !== null) slider.snapTo(parseInt(qs, 10));
+    return;
+  }
+
+  // the shared per-type map: tray badge color == slider line color.
+  // value = the single point estimate (the dot riding each range line)
+  var EST = {
+    cash: { id: "cash", lo: 312000, hi: 335000, value: 322000, label: "Cash offer estimate", color: "#16408F" },
+    ai:   { id: "ai",   lo: 340000, hi: 358000, value: 349000, label: "AI estimate",         color: "#3BA4F4" },
+    avm:  { id: "avm",  lo: 352000, hi: 371000, value: 362000, label: "AVM estimate",        color: "#1D4FD7" }
+  };
+  var chart = zbValueSlider(el, {
+    domain: { lo: 312000, hi: 371000 }, // pin the scale so arrivals draw in place
+    loadingImage: "assets/z-sphere-primary.webp", // sphere loop in the pre-arrival skeletons
+    // loading chips across the chart top: each checks + flies down to its
+    // range as the estimate lands (color-synced with the tray badges)
+    expected: [
+      { id: "cash", label: EST.cash.label, color: EST.cash.color },
+      { id: "ai",   label: EST.ai.label,   color: EST.ai.color },
+      { id: "avm",  label: EST.avm.label,  color: EST.avm.color }
+    ],
+    ariaLabel: "Your estimate ranges"
+  });
+  zbEstimateTray({
+    items: [
+      { id: "ai",   label: "AI estimate",         icon: "ai",   color: EST.ai.color },
+      { id: "avm",  label: "AVM estimate",        icon: "avm",  color: EST.avm.color },
+      { id: "cash", label: "Cash offer estimate", icon: "cash", color: EST.cash.color }
+    ],
+    // AI + AVM land within 2s; the cash offer follows 7s later
+    demo: { seconds: [1.2, 2, 9] },
+    onArrive: function (id) { if (EST[id]) chart.addRange(EST[id]); }
+  });
+})();
+</script>
+<div class="pmodal" id="phoneModal" hidden>
+  <div class="pm-backdrop" data-pmclose></div>
+  <div class="pm-card">
+    <button type="button" class="pm-x" data-pmclose aria-label="Close">&times;</button>
+    <h3>Update your mobile number</h3>
+    <input id="phoneUpd" type="tel" inputmode="tel" placeholder="(555) 555-5555" autocomplete="tel">
+    <button type="button" class="btn btn-cta" id="phoneSave">Update</button>
+  </div>
+</div>
+<div id="pixelDiv"></div>
+<script src="assets/pulse-config.js"></script>
+<script src="assets/google-config.js"></script>
+<script>
+(function () {
+  try {
+    var px = sessionStorage.getItem("pulsePixelHTML");
+    if (px) document.getElementById("pixelDiv").innerHTML = px;
+    // Show the address the user actually submitted (values/stats stay demo).
+    var a = sessionStorage.getItem("zbAddressDisplay");
+    if (a) {
+      document.getElementById("reportAddr").textContent = a;
+      document.title = a.split(",")[0] + " \u2014 Your Cash Value Report";
+      var ph = document.querySelector(".mast .photo");
+      if (ph) {
+        ph.alt = a.split(",")[0];
+        // Street View of the actual house: the free metadata check gates the
+        // billable render, and any failure (no key permission, no imagery,
+        // network) silently keeps the stock photo. Needs Street View Static
+        // API enabled on the key in assets/google-config.js.
+        if (window.GOOGLE_MAPS_KEY && window.GOOGLE_MAPS_KEY.indexOf("PASTE") === -1) {
+          var loc = encodeURIComponent(a);
+          fetch("https://maps.googleapis.com/maps/api/streetview/metadata?location=" + loc + "&source=outdoor&key=" + window.GOOGLE_MAPS_KEY)
+            .then(function (mr) { return mr.json(); })
+            .then(function (m) {
+              if (!m || m.status !== "OK") return;
+              var sv = new Image();
+              sv.onload = function () { ph.src = sv.src; };
+              sv.src = "https://maps.googleapis.com/maps/api/streetview?size=600x340&location=" + loc + "&fov=75&source=outdoor&key=" + window.GOOGLE_MAPS_KEY;
+            })
+            .catch(function () {});
+        }
+      }
+    }
+  } catch (e) {}
+
+  // ---- "Access anytime" notice: report link texted to the lead's phone ----
+  function fmt(d) { return "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6, 10); }
+  var digits = "";
+  try {
+    var snap = JSON.parse(sessionStorage.getItem("pulseFields") || "{}");
+    digits = String(snap.phone || "").replace(/\D/g, "").slice(0, 10);
+  } catch (e) {}
+  // ?demoPhone=5551234567 previews the notice without a funnel session
+  if (digits.length !== 10) digits = String(new URLSearchParams(location.search).get("demoPhone") || "").replace(/\D/g, "").slice(0, 10);
+  if (digits.length !== 10) return; // no phone on record: keep the notice hidden
+  var notice = document.getElementById("smsNotice");
+  if (sessionStorage.getItem("zbNoticeClosed")) return; // dismissed this session
+  if (sessionStorage.getItem("zbNoText")) return; // declined anytime-access: nothing was texted
+  var noticePhone = document.getElementById("noticePhone");
+  noticePhone.textContent = fmt(digits);
+  notice.hidden = false;
+  document.getElementById("noticeClose").addEventListener("click", function () {
+    notice.hidden = true;
+    try { sessionStorage.setItem("zbNoticeClosed", "1"); } catch (e) {}
+  });
+
+  var modal = document.getElementById("phoneModal");
+  var input = document.getElementById("phoneUpd");
+  input.addEventListener("input", function () {
+    var d = input.value.replace(/\D/g, "").slice(0, 10);
+    input.value = d.length > 6 ? fmt(d) : d;
+  });
+  document.getElementById("updPhoneBtn").addEventListener("click", function () {
+    input.value = fmt(digits);
+    modal.hidden = false;
+    input.focus();
+  });
+  modal.querySelectorAll("[data-pmclose]").forEach(function (el) {
+    el.addEventListener("click", function () { modal.hidden = true; });
+  });
+  document.getElementById("phoneSave").addEventListener("click", function () {
+    var d = input.value.replace(/\D/g, "").slice(0, 10);
+    if (d.length !== 10) { input.style.borderColor = "#D8442B"; return; }
+    // Save through the same lead session (submissionID + counter live in
+    // sessionStorage; PULSE_API_BASE from pulse-config.js).
+    try {
+      var sid = sessionStorage.getItem("pulseSID");
+      if (sid && window.PULSE_API_BASE) {
+        var c = parseInt(sessionStorage.getItem("pulseCNT") || "0", 10) + 1;
+        sessionStorage.setItem("pulseCNT", String(c));
+        fetch(window.PULSE_API_BASE + "?function=SaveLeadData&submissionID=" + encodeURIComponent(sid) +
+          "&cnt=" + c + "&fld=phone&val=" + d);
+        var snap2 = JSON.parse(sessionStorage.getItem("pulseFields") || "{}");
+        snap2.phone = d;
+        sessionStorage.setItem("pulseFields", JSON.stringify(snap2));
+      }
+    } catch (e) {}
+    digits = d;
+    noticePhone.textContent = fmt(d);
+    modal.hidden = true;
+  });
+})();
+</script>
+</body>
+</html>

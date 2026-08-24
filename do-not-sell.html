@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Do Not Sell or Share | zBuyer</title>
+<link rel="icon" type="image/png" href="assets/favicon-z.png">
+<link rel="stylesheet" href="assets/pages.css">
+<style>
+  .dnswrap{max-width:560px;margin:0 auto;padding:0 22px 70px}
+  .dnscard{background:var(--surface);border:1px solid var(--surface-bd);border-radius:18px;
+           padding:26px 24px 24px;box-shadow:var(--shadow)}
+  .dnscard p.lead{color:var(--muted);font-size:14.5px;line-height:1.6;margin-bottom:16px}
+  .dnscard input{display:block;width:100%;border:1.5px solid var(--line);border-radius:13px;
+                 padding:13px 15px;font:inherit;font-size:15.5px;color:var(--text);background:#fff;
+                 margin-top:11px}
+  .dnscard input:focus{outline:none;border-color:var(--accent)}
+  .dnscard input.invalid{border-color:#D8442B;background:#FEF6F4}
+  .dns-err{display:none;color:#D8442B;font-size:13px;font-weight:600;text-align:center;margin-top:10px}
+  .dns-err.on{display:block}
+  .dns-btn{display:block;width:100%;border:0;cursor:pointer;margin-top:14px;background:var(--cta-bg);
+           color:var(--cta-text);font:inherit;font-size:16.5px;font-weight:800;border-radius:14px;
+           padding:15px;letter-spacing:-.01em}
+  .dns-btn:hover{filter:brightness(.96)}
+  .dns-btn[disabled]{opacity:.6;cursor:default}
+  .dns-note{color:var(--muted);font-size:12px;line-height:1.55;text-align:center;margin-top:12px}
+  .dns-done{text-align:center;padding:26px 6px 14px;display:none}
+  .dns-done.on{display:block}
+  .dns-done .ok{width:56px;height:56px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+                display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .dns-done h2{font-size:20px;letter-spacing:-.01em}
+  .dns-done p{color:var(--muted);font-size:14px;line-height:1.6;margin-top:8px}
+  .dns-done a{color:var(--accent);font-weight:600}
+  footer .fone{max-width:1140px;margin:0 auto;padding:0 40px;text-align:center;font-size:13px}
+  footer .fone a{text-decoration:underline;text-underline-offset:2px}
+</style>
+</head>
+<body class="t-blue">
+<header class="topbar"><div class="bar"><a href="index.html"><img class="brand" src="assets/logo-blue-dark.png" alt="zBuyer"></a></div></header>
+
+<section class="phero container">
+  <div class="eyebrow"><span class="d"></span>Privacy</div>
+  <h1>Do Not Sell or Share My Personal Information</h1>
+  <p>Tell us how to reach you, and we&rsquo;ll flag your information.</p>
+</section>
+
+<section class="section" style="padding-top:6px">
+  <div class="dnswrap">
+    <div class="dnscard">
+      <form id="dnsForm" novalidate>
+        <p class="lead">Enter the email address and mobile number you&rsquo;ve used with us. We&rsquo;ll record a do-not-sell-or-share request for that contact information.</p>
+        <input id="dnsEmail" type="email" placeholder="Email address" autocomplete="email">
+        <input id="dnsPhone" type="tel" inputmode="tel" placeholder="Phone number" autocomplete="tel">
+        <p class="dns-err" id="dnsErr"></p>
+        <button type="submit" class="dns-btn" id="dnsGo">Do not sell my info</button>
+        <p class="dns-note">Applies to the contact information entered above. See our <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> for how we handle personal information.</p>
+      </form>
+      <div class="dns-done" id="dnsDone">
+        <div class="ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h2>Request received</h2>
+        <p>We&rsquo;ve flagged the contact information you provided as do&nbsp;not&nbsp;sell&nbsp;or&nbsp;share.</p>
+        <p><a href="index.html">Back to zBuyer</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer style="padding:26px 0 40px;margin-top:30px"><div class="fone">&copy; 2026 zBuyer &nbsp;&middot;&nbsp; <a href="terms.html">Terms of Service</a> &nbsp;&middot;&nbsp; <a href="privacy.html">Privacy Policy</a></div></footer>
+
+<script src="assets/pulse-config.js"></script>
+<script src="assets/pulse-api.js"></script>
+<script>
+(function () {
+  var form = document.getElementById("dnsForm");
+  var emailEl = document.getElementById("dnsEmail");
+  var phoneEl = document.getElementById("dnsPhone");
+  var errEl = document.getElementById("dnsErr");
+  var btn = document.getElementById("dnsGo");
+
+  function formatPhone(v) {
+    var d = v.replace(/\D/g, "").slice(0, 10);
+    var a = d.slice(0, 3), b = d.slice(3, 6), c = d.slice(6, 10);
+    if (d.length > 6) return "(" + a + ") " + b + "-" + c;
+    if (d.length > 3) return "(" + a + ") " + b;
+    if (d.length > 0) return "(" + a;
+    return "";
+  }
+  phoneEl.addEventListener("input", function () {
+    phoneEl.value = formatPhone(phoneEl.value);
+    phoneEl.classList.remove("invalid");
+    errEl.classList.remove("on");
+  });
+  emailEl.addEventListener("input", function () {
+    emailEl.classList.remove("invalid");
+    errEl.classList.remove("on");
+  });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var email = emailEl.value.trim();
+    var digits = phoneEl.value.replace(/\D/g, "");
+    var emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+    var phoneOk = digits.length === 10;
+
+    emailEl.classList.remove("invalid");
+    phoneEl.classList.remove("invalid");
+
+    // At least one usable identifier; whatever is present must be valid.
+    if ((!email && !digits) || (email && !emailOk) || (digits && !phoneOk)) {
+      if (email && !emailOk) emailEl.classList.add("invalid");
+      if (digits && !phoneOk) phoneEl.classList.add("invalid");
+      if (!email && !digits) { emailEl.classList.add("invalid"); phoneEl.classList.add("invalid"); }
+      errEl.textContent = "Please enter a valid email address or a 10-digit phone number.";
+      errEl.classList.add("on");
+      return;
+    }
+
+    // SaveLeadData per field: the identifiers, then the DNSell flag.
+    var P = window.PulseAPI || null;
+    if (P) {
+      if (emailOk) P.save(P.F.email, email);
+      if (phoneOk) P.save(P.F.phone, digits);
+      P.save("DNSell", "1");
+    }
+
+    // Non-blocking by design (matches the funnel): confirm immediately.
+    btn.disabled = true;
+    form.style.display = "none";
+    document.getElementById("dnsDone").classList.add("on");
+  });
+})();
+</script>
+</body>
+</html>
