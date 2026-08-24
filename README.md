@@ -8,15 +8,15 @@ Destined for **zBuyer.ai**; shared here for team review via GitHub Pages.
 
 1. **Screen 1 — "zBuyer and" deleted** from the inline checkbox consent: the member
    alone is named (demo persona: Jason Dalbey, BHHS The Preferred Realty). The only
-   zBuyer SMS consent anywhere on the site is Screen 2. The box is **optional** —
-   Continue proceeds unchecked.
+   zBuyer SMS consent anywhere on the site is Screen 2. The box is **required** —
+   Continue shakes the box and shows an error until it is checked.
 2. **Screen 2 — the no-share declaration added**: "Your mobile number and opt-in data
    are never sold or shared with third parties or affiliates for marketing."
 3. **Screen 2 — Terms & Privacy linked at the point of opt-in.**
 
 Per the spec's footnotes: the privacy policy carries the **matching never-sold-or-shared
-carve-out** for SMS opt-in data, and the all-set screen **names the member truthfully
-and only when the box was checked** (unchecked → "no one will reach out unless you ask").
+carve-out** for SMS opt-in data, and the all-set screen **names the member truthfully**
+(the checkbox is required, so every completed lead carries the consent).
 Everything else keeps the original pixels: "local expert knowledge" sub, the legal-wall
 consent paragraph, "Access your report anytime" + clock + "Check anytime. We'll text the
 link.", "Send my Report →", "No thanks, don't send my report", no first-text preview.

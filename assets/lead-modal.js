@@ -1,6 +1,6 @@
 /* zBuyer lead-capture modal — opens after the hero address step.
  *
- * Contact step: name / phone / email + the MINIMUM consent — an optional
+ * Contact step: name / phone / email + the MINIMUM consent — a REQUIRED
  *   inline checkbox naming only the matched member (no zBuyer in it).
  * SMS step: zBuyer's own opt-in — "Access your report anytime" / Send my Report.
  * All-set: confirmation; the member is named only if consent was given.
@@ -74,6 +74,7 @@
   if (expertOpt && v2Box) {
     expertOpt.addEventListener("change", function () {
       v2Box.classList.toggle("checked", expertOpt.checked);
+      if (expertOpt.checked) { v2Box.classList.remove("invalid"); errEl.hidden = true; }
     });
     // Tap anywhere in the box (outside the label, which toggles natively)
     // also flips the check — same ergonomics as the v1 inline variant.
@@ -81,6 +82,7 @@
       if (e.target.closest(".lm-v2-row, a, .lm-check")) return;
       expertOpt.checked = !expertOpt.checked;
       v2Box.classList.toggle("checked", expertOpt.checked);
+      if (expertOpt.checked) { v2Box.classList.remove("invalid"); errEl.hidden = true; }
     });
   }
 
@@ -170,7 +172,10 @@
   // The member's name lives inside the consent sentence.
   var consPros = modal.querySelector(".lm-cons-pros");
 
-  var termsBox = null, termsCheck = null, inlinePros = null;
+  // Required checkbox (Lucas 2026-08-24): Continue needs the check — the
+  // existing inline-variant validation (error line + shake + invalid state)
+  // drives it via these aliases.
+  var termsBox = document.getElementById("v2Consent"), termsCheck = document.getElementById("expertOpt"), inlinePros = null;
   // ---- z-param contact prefill (email/SMS landing links) ----
   // e.g. ?zfname=Alex&zlastname=Smith&zphone=6238805511&zemail=alex@gmail.com
   var qp = new URLSearchParams(window.location.search);
