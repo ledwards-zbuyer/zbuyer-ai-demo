@@ -419,8 +419,8 @@
 <script src="assets/value-slider.js"></script>
 <script>
 /* Estimate tray + value module wiring.
- * DEFAULT: the four-anchor selling-path slider, and the tray demo (AI 3s,
- * AVM 7s, Cash offer 10s) with the theme-blue badges. ?snap=N (0-3)
+ * DEFAULT: the four-anchor selling-path slider, and the tray demo
+ * (Market value, then Cash offer) with the theme-blue badges. ?snap=N (0-3)
  * presets the snapped anchor (testing).
  * ?ranges=1 — ALTERNATE view under evaluation: the slider renders as a
  * static chart pinned to the full domain, and each estimate is a value
@@ -433,7 +433,13 @@
   var rangesMode = /[?&]ranges=(1|on|yes|true)\b/.test(location.search) && combinedOn;
 
   if (!rangesMode) {
-    zbEstimateTray({ demo: { seconds: [1.2, 2, 9] } });
+    zbEstimateTray({
+      items: [
+        { id: "avm",  label: "Market value estimate", icon: "avm" },
+        { id: "cash", label: "Cash offer estimate",   icon: "cash" }
+      ],
+      demo: { seconds: [1.5, 8] }
+    });
     if (!combinedOn) return;
     var slider = zbValueSlider(el, {
       anchors: [
@@ -452,9 +458,8 @@
   // the shared per-type map: tray badge color == slider line color.
   // value = the single point estimate (the dot riding each range line)
   var EST = {
-    cash: { id: "cash", lo: 312000, hi: 335000, value: 322000, label: "Cash offer estimate", color: "#16408F" },
-    ai:   { id: "ai",   lo: 340000, hi: 358000, value: 349000, label: "AI estimate",         color: "#3BA4F4" },
-    avm:  { id: "avm",  lo: 352000, hi: 371000, value: 362000, label: "AVM estimate",        color: "#1D4FD7" }
+    cash: { id: "cash", lo: 312000, hi: 335000, value: 322000, label: "Cash offer estimate",   color: "#16408F" },
+    avm:  { id: "avm",  lo: 352000, hi: 371000, value: 362000, label: "Market value estimate", color: "#1D4FD7" }
   };
   var chart = zbValueSlider(el, {
     domain: { lo: 312000, hi: 371000 }, // pin the scale so arrivals draw in place
@@ -463,19 +468,17 @@
     // range as the estimate lands (color-synced with the tray badges)
     expected: [
       { id: "cash", label: EST.cash.label, color: EST.cash.color },
-      { id: "ai",   label: EST.ai.label,   color: EST.ai.color },
       { id: "avm",  label: EST.avm.label,  color: EST.avm.color }
     ],
     ariaLabel: "Your estimate ranges"
   });
   zbEstimateTray({
     items: [
-      { id: "ai",   label: "AI estimate",         icon: "ai",   color: EST.ai.color },
-      { id: "avm",  label: "AVM estimate",        icon: "avm",  color: EST.avm.color },
-      { id: "cash", label: "Cash offer estimate", icon: "cash", color: EST.cash.color }
+      { id: "avm",  label: "Market value estimate", icon: "avm",  color: EST.avm.color },
+      { id: "cash", label: "Cash offer estimate",   icon: "cash", color: EST.cash.color }
     ],
-    // AI + AVM land within 2s; the cash offer follows 7s later
-    demo: { seconds: [1.2, 2, 9] },
+    // Market value lands first; the cash offer follows
+    demo: { seconds: [1.5, 8] },
     onArrive: function (id) { if (EST[id]) chart.addRange(EST[id]); }
   });
 })();
